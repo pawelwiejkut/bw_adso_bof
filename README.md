@@ -5,7 +5,14 @@ Create direct update ADSO based on content file
 You can create direct update ADSO (field's only) based on the content in the .csv file. This works wery similar to creation of Data Source (RSDS) base on the file content.
 
 1. Fill required fields
-2. 
+![fill_fields](https://user-images.githubusercontent.com/11619019/147599721-3f392454-478a-41f4-a204-e5cf6add4665.gif)
+2. Select key / correct field name, type and length if necessary
+![select_key](https://user-images.githubusercontent.com/11619019/147599624-b74018aa-93d2-49dd-8591-8a4a7bb91744.gif)
+4. ADSO is created and ready for data load
+![adso_created](https://user-images.githubusercontent.com/11619019/147599917-bfa5b5c9-445a-4754-904f-3779fb88c7a5.gif)
+
+## Use case
+Can be helpful if you are using data integration software like Talend, and you want to load the csv data directly into ADSO. It saves time required toobject creation.
 
 ## How to install
 You have 2 ways:
