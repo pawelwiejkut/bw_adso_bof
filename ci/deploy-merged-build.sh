@@ -13,8 +13,6 @@ cd zbw_adso_bof
 git status
 git config user.email "ci@pawelwiejkut.net"
 git config user.name "CI"
-git add last_build/zbw_adso_bof
-
-.abap
+git add last_build/zbw_adso_bof.abap
 git commit -m "CI build [skip ci]" || exit 1
 git push -q https://$GITHUB_API_KEY@github.com/pawelwiejkut/bw_adso_bof.git 
