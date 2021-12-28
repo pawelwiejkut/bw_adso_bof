@@ -1,0 +1,24 @@
+{
+  "license": "MIT",
+  "scripts": {
+    "test": "npm run abaplint",
+    "merge": "abapmerge -f src/zbw_adso_bof.prog.abap -c zbw_trfn_tester_standalone > zbw_trfn_tester.abap",
+    "merge.ci": "cp zbw_trfn_tester.abap ci/zbw_trfn_tester.prog.abap",
+    "unit": "rm -rf output && abap_transpile && echo RUNNING && node output/index.js",
+    "abaplint": "abaplint",
+    "docker-build": "docker-compose -f test/docker-compose.yml build",
+    "docker-up": "docker-compose -f test/docker-compose.yml up",
+    "docker-down": "docker-compose -f test/docker-compose.yml down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pawelwiejkut/bw_trfn_tester.git"
+  },
+  "devDependencies": {
+    "@abaplint/cli": "^2.73.1",
+    "@abaplint/transpiler-cli": "^1.2.24",
+    "@abaplint/runtime": "^1.2.24",
+    "abapmerge": "^0.14.3",
+    "eslint": "^7.22.0"
+  }
+}
