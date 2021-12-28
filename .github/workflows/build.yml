@@ -19,7 +19,7 @@ jobs:
         npm run merge
         npm run merge.ci
     - name: deploy-merged-build
-      if: github.ref == 'refs/heads/main' && github.repository == 'pawelwiejkut/bw_trfn_tester'
+      if: github.ref == 'refs/heads/main' && github.repository == 'pawelwiejkut/bw_adso_bof'
       env:
         GITHUB_API_KEY: ${{ secrets.MY_SECRET }}
       run: | 
