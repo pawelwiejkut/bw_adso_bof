@@ -6,7 +6,7 @@ wc -l ./zbw_adso_bof.abap
 
 # Deploy artifacts
 git clone https://github.com/pawelwiejkut/bw_adso_bof.git
-cp zbw_adso_bof.abap zbw_adso_bof/last_build/zbw_adso_bof.abap
+cp zbw_adso_bof.abap bw_adso_bof/last_build/zbw_adso_bof.abap
 cd zbw_adso_bof
 
 # Commit
