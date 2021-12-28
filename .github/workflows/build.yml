@@ -1,0 +1,27 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Run npm steps
+      run: |
+        npm install
+        npm run merge
+        npm run merge.ci
+    - name: deploy-merged-build
+      if: github.ref == 'refs/heads/main' && github.repository == 'pawelwiejkut/bw_trfn_tester'
+      env:
+        GITHUB_API_KEY: ${{ secrets.MY_SECRET }}
+      run: | 
+       chmod +x ./ci/deploy-merged-build.sh
+       ./ci/deploy-merged-build.sh
