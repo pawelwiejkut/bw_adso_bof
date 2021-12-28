@@ -1,5 +1,5 @@
 # Create direct update ADSO based on content file
-Create direct update ADSO based on content file
+Create direct update ADSO based on content .csv file
 
 ## Purpose:
 You can create direct update ADSO (field's only) based on the content in the .csv file. This works wery similar to creation of Data Source (RSDS) base on the file content.
@@ -13,7 +13,7 @@ You can create direct update ADSO (field's only) based on the content in the .cs
 <img src="https://user-images.githubusercontent.com/11619019/147599917-bfa5b5c9-445a-4754-904f-3779fb88c7a5.gif" width=50% height=50%/>
 
 ## Use case
-Can be helpful if you are using data integration software like Talend, and you want to load the csv data directly into ADSO. It saves time required toobject creation.
+Can be helpful if you are using data integration software like Talend, and you want to load the csv data directly into ADSO. It saves time required to object creation.
 
 ## How to install
 You have 2 ways:
