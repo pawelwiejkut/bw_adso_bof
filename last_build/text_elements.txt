@@ -1,1 +1,22 @@
-TEXT - SYMBOLS:
+SELECTION-TEXT:
+
+PA_ANE	ADSO name
+PA_DSE	Decimal separator
+PA_EHX	                              
+PA_ESC	                              
+PA_HEAD	First line is a header
+PA_LOD	Load test data into ADSO
+PA_PATH	PC File path
+PA_SEP	
+PA_SHX	
+PA_TSE	Thousand separator
+
+TEXT-SYMBOLS:
+
+001	Escape Sign
+002	Hex?
+003	Data Separator
+004	Hex?
+B01	File
+B02	Data
+B03	ADSO
