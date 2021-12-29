@@ -88,6 +88,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>PA_LOD</KEY>
+     <ENTRY>Load test data into ADSO</ENTRY>
+     <LENGTH>32</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>PA_PATH</KEY>
      <ENTRY>PC File path</ENTRY>
      <LENGTH>20</LENGTH>

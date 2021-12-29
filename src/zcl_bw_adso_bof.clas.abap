@@ -30,6 +30,11 @@ CLASS zcl_bw_adso_bof DEFINITION
                 it_fields      TYPE rsds_t_fields
       EXPORTING et_adso_fields TYPE t_ty_alv.
 
+    METHODS load_data
+      IMPORTING it_data      TYPE table_of_strings
+                iv_adso_name TYPE rsoadsonm
+      EXPORTING et_msg       TYPE rs_t_msg .
+
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -142,7 +147,32 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
               e_lowercase  = ls_prop_fields-lowercase
               e_unifieldnm = ls_prop_fields-unifieldnm.
 
-          MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index.
+          TRY.
+              DATA(ls_old_str) = lt_prop_fields[ lv_index ].
+            CATCH cx_sy_itab_line_not_found.
+          ENDTRY.
+
+          IF ls_old_str-leng < ls_prop_fields-leng.
+            DATA(lv_leng) = 'LENG'.
+          ELSE.
+            lv_leng = ''.
+          ENDIF.
+
+          IF ls_old_str-decimals < ls_prop_fields-decimals.
+            DATA(lv_decimals) = 'DECIMALS'.
+          ELSE.
+            lv_decimals = ''.
+          ENDIF.
+
+          IF ls_old_str-datatype <> 'CHAR'.
+            DATA(lv_datatype) = 'DATATYPE'.
+          ELSE.
+            lv_datatype = ''.
+          ENDIF.
+
+          MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
+          TRANSPORTING  ('CONVEXIT') ('CONVTYPE') ('LOWERCASE') ('UNIFIELDNM')
+          (lv_datatype) (lv_leng) (lv_decimals).
 
         ENDLOOP.
       ENDIF.
@@ -238,9 +268,112 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
     ENDIF.
 
     et_adso_fields = CORRESPONDING #( lt_fields
-            MAPPING fieldname = fieldnm
-                      length = leng
-                      datatp = datatype ).
+            MAPPING fieldname  = fieldnm
+                      length   = leng
+                      datatp   = datatype
+                      decimals = decimals ).
+
+  ENDMETHOD.
+
+  METHOD load_data.
+
+    DATA: lr_adso_table TYPE REF TO data,
+          lv_ctr        TYPE i,
+          lt_msg        TYPE rs_t_msg,
+          lv_cnt        TYPE i,
+          lt_output     TYPE table_of_strings.
+
+    FIELD-SYMBOLS: <lt_adso> TYPE STANDARD TABLE.
+
+    TRY.
+        DATA(lt_tabname) = cl_rso_adso=>get_tablnm(
+          EXPORTING
+            i_adsonm        = CONV #( iv_adso_name ) ).
+      CATCH cx_rs_not_found.
+    ENDTRY.
+
+    TRY.
+        DATA(lv_table) = lt_tabname[ dsotabtype = 'AT' ]-name.
+      CATCH cx_sy_itab_line_not_found.
+    ENDTRY.
+
+    CREATE DATA lr_adso_table TYPE STANDARD TABLE OF (lv_table).
+    ASSIGN lr_adso_table->* TO <lt_adso>.
+
+    LOOP AT it_data INTO DATA(ls_data).
+      lv_ctr = lv_ctr + 1.
+      CALL FUNCTION 'RSDS_CONVERT_CSV'
+        EXPORTING
+          i_data_sep       = gv_data_sep
+          i_esc_char       = gv_esc_sign
+          i_record         = ls_data
+          i_field_count    = 999
+        IMPORTING
+          e_t_data         = lt_output
+        EXCEPTIONS
+          escape_no_close  = 1
+          escape_improper  = 2
+          conversion_error = 3
+          OTHERS           = 4.
+
+      IF sy-subrc <> 0.
+        IF sy-msgno IS NOT INITIAL.
+          MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+        ELSE.
+          MESSAGE |Error during file processing, line { lv_ctr } Data:{ ls_data(50) }| TYPE 'E'.
+        ENDIF.
+      ENDIF.
+
+      IF gv_header = abap_true AND lv_ctr = 1.
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO <lt_adso> ASSIGNING FIELD-SYMBOL(<ls_adso>).
+      DATA(lobj_ref) = CAST cl_abap_structdescr(
+                            cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
+
+      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
+        lv_cnt = lv_cnt + 1.
+
+        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+
+          REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+          REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+          CONDENSE <lv_output>.
+
+        ENDIF.
+
+        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
+
+        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
+          lv_cnt = lv_cnt + 1.
+          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
+        ENDIF.
+
+        <lv_adso_field> = <lv_output>.
+
+      ENDLOOP.
+      CLEAR lv_cnt.
+
+    ENDLOOP.
+
+    CALL FUNCTION 'RSDSO_DU_WRITE_API'
+      EXPORTING
+        i_adsonm            = iv_adso_name
+        it_data             = <lt_adso>
+      IMPORTING
+        et_msg              = lt_msg
+      EXCEPTIONS
+        write_failed        = 1
+        datastore_not_found = 2
+        OTHERS              = 3.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+        WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    et_msg = lt_msg.
 
   ENDMETHOD.
 

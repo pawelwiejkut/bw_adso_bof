@@ -5,6 +5,18 @@
 *&---------------------------------------------------------------------*
 REPORT zbw_adso_bof.
 
+TYPES: BEGIN OF t_msg,
+         msgty TYPE symsgty,
+         msgid TYPE symsgid,
+         msgno TYPE symsgno,
+         msgv1 TYPE symsgv,
+         msgv2 TYPE symsgv,
+         msgv3 TYPE symsgv,
+         msgv4 TYPE symsgv.
+TYPES: END OF t_msg.
+
+TYPES: t_ty_msg TYPE STANDARD TABLE OF t_msg WITH DEFAULT KEY.
+
 DATA: lt_file_table     TYPE filetable,
       lv_rc             TYPE i,
       lv_escape_char    TYPE char1,
@@ -45,7 +57,8 @@ SELECTION-SCREEN BEGIN OF BLOCK part2 WITH FRAME TITLE TEXT-b02.
 SELECTION-SCREEN END OF BLOCK part2.
 
 SELECTION-SCREEN BEGIN OF BLOCK part3 WITH FRAME TITLE TEXT-b03.
-  PARAMETERS: pa_ane  TYPE char10 OBLIGATORY.
+  PARAMETERS: pa_ane TYPE char10 OBLIGATORY,
+              pa_lod AS CHECKBOX.
 SELECTION-SCREEN END OF BLOCK part3.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
@@ -72,10 +85,10 @@ AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
   ENDIF.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_esc.
-PERFORM f4_hex CHANGING pa_esc.
+  PERFORM f4_hex CHANGING pa_esc.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_sep.
-PERFORM f4_hex CHANGING pa_sep.
+  PERFORM f4_hex CHANGING pa_sep.
 
 END-OF-SELECTION.
 
@@ -147,6 +160,7 @@ END-OF-SELECTION.
                    ( fieldname  = 'FIELDNAME' seltext_s = 'FIELD NAME'  edit = abap_true )
                    ( fieldname  = 'LENGTH'    seltext_s = 'LENGTH'      edit = abap_true )
                    ( fieldname  = 'DATATP'    seltext_s = 'DATA TYPE'   edit = abap_true )
+                   ( fieldname  = 'DECIMALS'  seltext_s = 'DECIMALS'    edit = abap_true )
                    ( fieldname  = 'KEY'       seltext_s = 'KEY'         edit = abap_true  checkbox = abap_true ) ).
 
   CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
@@ -195,10 +209,26 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
               name = 'Error'  ).
       ENDTRY.
 
+      IF pa_lod = abap_true.
+        lobj_adso_bof->load_data( EXPORTING it_data      = lt_output
+                                            iv_adso_name = CONV #( pa_ane )
+                                   IMPORTING et_msg = DATA(lt_request_msg) ).
+      ENDIF.
+
       IF lt_msg IS NOT INITIAL.
+        DATA(lt_ready_msg) = CORRESPONDING t_ty_msg( lt_msg ).
         cl_demo_output=>display(
           EXPORTING
-            data = lt_msg ).
+            name = 'ADSO Create'
+            data = lt_ready_msg ).
+      ENDIF.
+
+      IF lt_request_msg IS NOT INITIAL.
+        DATA(lt_ready_request_msg) = CORRESPONDING t_ty_msg( lt_request_msg ).
+        cl_demo_output=>display(
+         EXPORTING
+           name = 'ADSO Request'
+           data = lt_ready_request_msg ).
       ENDIF.
 
   ENDCASE.
