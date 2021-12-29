@@ -1,5 +1,5 @@
-# Create direct update ADSO based on content file
-Create direct update ADSO based on content .csv file
+# Create direct update ADSO from the content file
+Create direct update ADSO from the content .csv file
 
 ## Purpose:
 You can create direct update ADSO (field's only) based on the content in the .csv file. This works wery similar to creation of Data Source (RSDS) base on the file content.
