@@ -397,6 +397,7 @@ DATA: lt_file_table     TYPE filetable,
       lv_separator_char TYPE char1,
       lt_output         TYPE table_of_strings,
       lt_key            TYPE cl_rso_adso_api=>tn_t_key,
+      lv_hex            TYPE xstring,
       lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension.
 
 SELECTION-SCREEN BEGIN OF BLOCK part1 WITH FRAME TITLE TEXT-b01.
@@ -497,14 +498,37 @@ END-OF-SELECTION.
       WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
   ENDIF.
 
+  LOOP AT lt_output REFERENCE INTO DATA(lr_output).
+    IF sy-tabix > 1.
+      DELETE lt_output.
+    ENDIF.
+  ENDLOOP.
+
   IF pa_ehx = abap_true.
-    lv_escape_char = CONV xstring( pa_esc ).
+    lv_hex = pa_esc+2(2).
+    TRY.
+        lv_escape_char = cl_abap_codepage=>convert_from(
+                             source      = lv_hex ).
+      CATCH cx_parameter_invalid_range.
+      CATCH cx_sy_codepage_converter_init.
+      CATCH cx_sy_conversion_codepage.
+      CATCH cx_parameter_invalid_type.
+    ENDTRY.
   ELSE.
     lv_escape_char = pa_esc.
   ENDIF.
 
   IF pa_shx = abap_true.
-    lv_separator_char = CONV xstring( pa_sep  ).
+    lv_hex = pa_sep+2(2).
+    TRY.
+        lv_separator_char = cl_abap_codepage=>convert_from(
+                                 source      = lv_hex ).
+      CATCH cx_parameter_invalid_range.
+      CATCH cx_sy_codepage_converter_init.
+      CATCH cx_sy_conversion_codepage.
+      CATCH cx_parameter_invalid_type.
+    ENDTRY.
+
   ELSE.
     lv_separator_char = pa_sep.
   ENDIF.
@@ -675,6 +699,6 @@ ENDFORM.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-29T17:08:23.509Z
+* abapmerge 0.14.3 - 2021-12-30T14:26:48.035Z
 ENDINTERFACE.
 ****************************************************
