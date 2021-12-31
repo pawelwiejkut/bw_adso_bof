@@ -344,48 +344,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       APPEND INITIAL LINE TO <lt_adso> ASSIGNING FIELD-SYMBOL(<ls_adso>).
       DATA(lobj_ref) = CAST cl_abap_structdescr(
                             cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
-
-*      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
-*        lv_cnt = lv_cnt + 1.
-*
-*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*          IF gv_decimal_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*          ENDIF.
-*
-*          IF gv_thousand_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*          ENDIF.
-*          CONDENSE <lv_output>.
-*
-*        ENDIF.
-*
-*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
-*
-*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
-*          lv_cnt = lv_cnt + 1.
-*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*            IF gv_decimal_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*            ENDIF.
-*
-*            IF gv_thousand_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*            ENDIF.
-*            CONDENSE <lv_output>.
-*
-*          ENDIF.
-*
-*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
-*        ENDIF.
-*
-*        <lv_adso_field> = <lv_output>.
-*
-*      ENDLOOP.
-*      CLEAR lv_cnt.
-
       DATA(lv_lengt) = lines( it_adso_fields ).
 
       DO lv_lengt TIMES.
@@ -421,47 +379,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       ENDDO.
     CLEAR lv_cnt.
     ENDLOOP.
-
-
-*        lv_cnt = lv_cnt + 1.
-*
-*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*          IF gv_decimal_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*          ENDIF.
-*
-*          IF gv_thousand_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*          ENDIF.
-*          CONDENSE <lv_output>.
-*
-*        ENDIF.
-*
-*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
-*
-*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
-*          lv_cnt = lv_cnt + 1.
-*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*            IF gv_decimal_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*            ENDIF.
-*
-*            IF gv_thousand_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*            ENDIF.
-*            CONDENSE <lv_output>.
-*
-*          ENDIF.
-*
-*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
-*        ENDIF.
-*
-*        <lv_adso_field> = <lv_output>.
-*
-*      ENDLOOP.
-*      CLEAR lv_cnt.
 
     CALL FUNCTION 'RSDSO_DU_WRITE_API'
       EXPORTING
@@ -835,6 +752,6 @@ ENDFORM.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-31T12:21:12.260Z
+* abapmerge 0.14.3 - 2021-12-31T12:24:30.921Z
 ENDINTERFACE.
 ****************************************************
