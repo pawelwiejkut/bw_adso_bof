@@ -358,7 +358,7 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
         TRY.
             DATA(lv_output) = lt_output[ lv_cnt ].
 
-            IF lv_kind = 'P'.
+            IF lv_kind = 'P' or lv_kind = 'F' .
 
               IF gv_decimal_sep IS NOT INITIAL.
                 REPLACE ALL OCCURRENCES OF gv_decimal_sep IN lv_output WITH '.'.
@@ -752,6 +752,6 @@ ENDFORM.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-31T12:24:30.921Z
+* abapmerge 0.14.3 - 2021-12-31T12:59:49.615Z
 ENDINTERFACE.
 ****************************************************
