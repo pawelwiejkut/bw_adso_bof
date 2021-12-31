@@ -1,10 +1,4 @@
-*&---------------------------------------------------------------------*
-*& Report zbw_adso_bof
-*&---------------------------------------------------------------------*
-*&
-*&---------------------------------------------------------------------*
-REPORT zbw_adso_bof.
-
+REPORT zbw_ADSO_BOF.
 TYPES: BEGIN OF t_msg,
          msgty TYPE symsgty,
          msgid TYPE symsgid,
@@ -24,7 +18,8 @@ DATA: lt_file_table     TYPE filetable,
       lt_output         TYPE table_of_strings,
       lt_key            TYPE cl_rso_adso_api=>tn_t_key,
       lv_hex            TYPE xstring,
-      lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension.
+      lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension,
+      lv_prev_fieldname TYPE string.
 
 SELECTION-SCREEN BEGIN OF BLOCK part1 WITH FRAME TITLE TEXT-b01.
   PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
@@ -58,8 +53,9 @@ SELECTION-SCREEN BEGIN OF BLOCK part2 WITH FRAME TITLE TEXT-b02.
 SELECTION-SCREEN END OF BLOCK part2.
 
 SELECTION-SCREEN BEGIN OF BLOCK part3 WITH FRAME TITLE TEXT-b03.
-  PARAMETERS: pa_ane TYPE char10 OBLIGATORY,
-              pa_lod AS CHECKBOX.
+  PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
+              pa_lod  AS CHECKBOX,
+              pa_area TYPE rsinfoarea.
 SELECTION-SCREEN END OF BLOCK part3.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
@@ -125,7 +121,7 @@ END-OF-SELECTION.
   ENDIF.
 
   LOOP AT lt_output REFERENCE INTO DATA(lr_output).
-    IF sy-tabix > 1.
+    IF sy-tabix > 100000.
       DELETE lt_output.
     ENDIF.
   ENDLOOP.
@@ -180,6 +176,33 @@ END-OF-SELECTION.
     IMPORTING
       et_adso_fields = DATA(lt_adso_fields) ).
 
+  LOOP AT lt_adso_fields REFERENCE INTO DATA(lr_adso_fields) WHERE datatp = 'QUAN'.
+    lr_adso_fields->datatp = 'CHAR'.
+  ENDLOOP.
+
+  DATA(lt_temp) = lt_adso_fields.
+
+  SORT lt_temp BY fieldname.
+
+  LOOP AT lt_temp REFERENCE INTO DATA(lr_temp).
+
+    IF lr_temp->fieldname = lv_prev_fieldname.
+
+      READ TABLE lt_adso_fields WITH KEY fieldname = lr_temp->fieldname
+      REFERENCE INTO DATA(lr_adso_field).
+
+      DATA(lv_char_trim) = strlen( lr_adso_field->fieldname ) - 1.
+
+      lr_adso_field->fieldname = |{ lr_adso_field->fieldname(lv_char_trim) }2|.
+
+      lv_prev_fieldname = lr_temp->fieldname.
+
+    ENDIF.
+
+    lv_prev_fieldname = lr_temp->fieldname.
+
+  ENDLOOP.
+
   DATA(lt_fieldcat) =  VALUE slis_t_fieldcat_alv(
                    ( fieldname  = 'FIELDNAME' seltext_s = 'FIELD NAME'  edit = abap_true )
                    ( fieldname  = 'LENGTH'    seltext_s = 'LENGTH'      edit = abap_true )
@@ -211,12 +234,13 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
         APPEND ls_adso_fields-fieldname TO lt_key.
       ENDLOOP.
 
-      DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true ).
+      DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true  ).
 
       TRY.
           cl_rso_adso_api=>create(
             EXPORTING
               i_adsonm                      = CONV #( pa_ane )
+              i_infoarea                    = pa_area
               i_s_adsoflags                 = ls_flags
               i_t_object                    = CORRESPONDING #( lt_adso_fields )
               i_t_dimension                 = lt_dimension
@@ -234,8 +258,9 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
       ENDTRY.
 
       IF pa_lod = abap_true.
-        lobj_adso_bof->load_data( EXPORTING it_data      = lt_output
-                                            iv_adso_name = CONV #( pa_ane )
+        lobj_adso_bof->load_data( EXPORTING it_data             = lt_output
+                                            iv_adso_name        = CONV #( pa_ane )
+                                            it_adso_fields      = lt_adso_fields
                                    IMPORTING et_msg = DATA(lt_request_msg) ).
       ENDIF.
 
@@ -265,8 +290,6 @@ FORM f4_hex CHANGING cv_param TYPE char4.
         ls_dd07v  TYPE dd07v,
         ls_ret    TYPE slis_selfield,
         lt_fields TYPE slis_t_fieldcat_alv.
-
-
   CALL FUNCTION 'DD_DOMVALUES_GET'
     EXPORTING
       domname        = 'RSASCII'

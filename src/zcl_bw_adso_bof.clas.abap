@@ -1,15 +1,12 @@
-CLASS zcl_bw_adso_bof DEFINITION
-  PUBLIC
-  FINAL
+CLASS zcl_bw_adso_bof DEFINITION PUBLIC
+    FINAL
   CREATE PUBLIC.
-
-
   PUBLIC SECTION.
 
     TYPES: BEGIN OF t_alv,
              key TYPE abap_bool.
              INCLUDE TYPE cl_rso_adso_api=>tn_s_object.
-    TYPES: END OF t_alv.
+           TYPES: END OF t_alv.
 
     TYPES t_ty_alv TYPE STANDARD TABLE OF t_alv.
 
@@ -31,9 +28,10 @@ CLASS zcl_bw_adso_bof DEFINITION
       EXPORTING et_adso_fields TYPE t_ty_alv.
 
     METHODS load_data
-      IMPORTING it_data      TYPE table_of_strings
-                iv_adso_name TYPE rsoadsonm
-      EXPORTING et_msg       TYPE rs_t_msg .
+      IMPORTING it_data        TYPE table_of_strings
+                iv_adso_name   TYPE rsoadsonm
+                it_adso_fields TYPE t_ty_alv
+      EXPORTING et_msg         TYPE rs_t_msg .
 
   PROTECTED SECTION.
 
@@ -46,9 +44,6 @@ CLASS zcl_bw_adso_bof DEFINITION
           gv_header       TYPE abap_bool.
 
 ENDCLASS.
-
-
-
 CLASS zcl_bw_adso_bof IMPLEMENTATION.
 
   METHOD convert_into_columns.
@@ -170,6 +165,22 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
             lv_datatype = ''.
           ENDIF.
 
+          IF ( ls_old_str-datatype = 'DEC'
+                 OR ls_old_str-datatype = 'QUAN'
+                 OR ls_old_str-datatype = 'CURR'
+                 OR ls_old_str-datatype = 'FLTP' ) AND
+              ls_prop_fields-datatype CP 'INT*'.
+            lv_datatype = ''.
+          ELSEIF ls_prop_fields-datatype CP 'INT*'.
+            DATA(lv_int_length_new) = ls_prop_fields-datatype+3(1).
+            DATA(lv_int_length_old) = ls_old_str-datatype+3(1).
+            IF lv_int_length_new > lv_int_length_old.
+              lv_datatype = 'DATATYPE'.
+            ELSE.
+              lv_datatype = ''.
+            ENDIF.
+          ENDIF.
+
           MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
           TRANSPORTING  ('CONVEXIT') ('CONVTYPE') ('LOWERCASE') ('UNIFIELDNM')
           (lv_datatype) (lv_leng) (lv_decimals).
@@ -245,8 +256,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
         IMPORTING
           e_leng     = ls_fields-leng
           e_decimals = ls_fields-decimals.
-
-
       MOVE-CORRESPONDING ls_fields TO ls_segfd.
       CALL FUNCTION 'RSDS_FIELD_GET_CHARLENGTH'
         EXPORTING
@@ -295,6 +304,7 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
     TRY.
         DATA(lv_table) = lt_tabname[ dsotabtype = 'AT' ]-name.
       CATCH cx_sy_itab_line_not_found.
+        RETURN.
     ENDTRY.
 
     CREATE DATA lr_adso_table TYPE STANDARD TABLE OF (lv_table).
@@ -333,30 +343,129 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       DATA(lobj_ref) = CAST cl_abap_structdescr(
                             cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
 
-      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
+
+
+*      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
+*        lv_cnt = lv_cnt + 1.
+*
+*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+*
+*          IF gv_decimal_sep IS NOT INITIAL.
+*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+*          ENDIF.
+*
+*          IF gv_thousand_sep IS NOT INITIAL.
+*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+*          ENDIF.
+*          CONDENSE <lv_output>.
+*
+*        ENDIF.
+*
+*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
+*
+*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
+*          lv_cnt = lv_cnt + 1.
+*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+*
+*            IF gv_decimal_sep IS NOT INITIAL.
+*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+*            ENDIF.
+*
+*            IF gv_thousand_sep IS NOT INITIAL.
+*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+*            ENDIF.
+*            CONDENSE <lv_output>.
+*
+*          ENDIF.
+*
+*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
+*        ENDIF.
+*
+*        <lv_adso_field> = <lv_output>.
+*
+*      ENDLOOP.
+*      CLEAR lv_cnt.
+
+      DATA(lv_lengt) = lines( it_adso_fields ).
+
+      DO lv_lengt TIMES.
+
         lv_cnt = lv_cnt + 1.
+        DATA(ls_adso_fields) =  it_adso_fields[ lv_cnt ] .
 
-        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+        ASSIGN COMPONENT ls_adso_fields-fieldname OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
 
-          REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-          REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-          CONDENSE <lv_output>.
+        DATA(lv_kind) = lobj_ref->components[ name = ls_adso_fields-fieldname ]-type_kind.
 
-        ENDIF.
+        TRY.
+            DATA(lv_output) = lt_output[ lv_cnt ].
 
-        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
+            IF lv_kind = 'P'.
 
-        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
-          lv_cnt = lv_cnt + 1.
-          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
-        ENDIF.
+              IF gv_decimal_sep IS NOT INITIAL.
+                REPLACE ALL OCCURRENCES OF gv_decimal_sep IN lv_output WITH '.'.
+              ENDIF.
 
-        <lv_adso_field> = <lv_output>.
+              IF gv_thousand_sep IS NOT INITIAL.
+                REPLACE ALL OCCURRENCES OF gv_thousand_sep IN lv_output WITH ''.
+              ENDIF.
+              CONDENSE lv_output.
 
-      ENDLOOP.
-      CLEAR lv_cnt.
+            ENDIF.
 
+            <lv_adso_field> = lv_output.
+
+          CATCH cx_sy_itab_line_not_found.
+        ENDTRY.
+
+      ENDDO.
+    CLEAR lv_cnt.
     ENDLOOP.
+
+
+
+
+*        lv_cnt = lv_cnt + 1.
+*
+*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+*
+*          IF gv_decimal_sep IS NOT INITIAL.
+*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+*          ENDIF.
+*
+*          IF gv_thousand_sep IS NOT INITIAL.
+*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+*          ENDIF.
+*          CONDENSE <lv_output>.
+*
+*        ENDIF.
+*
+*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
+*
+*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
+*          lv_cnt = lv_cnt + 1.
+*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
+*
+*            IF gv_decimal_sep IS NOT INITIAL.
+*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+*            ENDIF.
+*
+*            IF gv_thousand_sep IS NOT INITIAL.
+*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+*            ENDIF.
+*            CONDENSE <lv_output>.
+*
+*          ENDIF.
+*
+*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
+*        ENDIF.
+*
+*        <lv_adso_field> = <lv_output>.
+*
+*      ENDLOOP.
+*      CLEAR lv_cnt.
+
+
 
     CALL FUNCTION 'RSDSO_DU_WRITE_API'
       EXPORTING
