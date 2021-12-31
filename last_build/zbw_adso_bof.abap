@@ -14,7 +14,7 @@ CLASS zcl_bw_adso_bof DEFINITION
     TYPES: BEGIN OF t_alv,
              key TYPE abap_bool.
              INCLUDE TYPE cl_rso_adso_api=>tn_s_object.
-           TYPES: END OF t_alv.
+    TYPES: END OF t_alv.
 
     TYPES t_ty_alv TYPE STANDARD TABLE OF t_alv.
 
@@ -36,10 +36,9 @@ CLASS zcl_bw_adso_bof DEFINITION
       EXPORTING et_adso_fields TYPE t_ty_alv.
 
     METHODS load_data
-      IMPORTING it_data        TYPE table_of_strings
-                iv_adso_name   TYPE rsoadsonm
-                it_adso_fields TYPE t_ty_alv
-      EXPORTING et_msg         TYPE rs_t_msg .
+      IMPORTING it_data      TYPE table_of_strings
+                iv_adso_name TYPE rsoadsonm
+      EXPORTING et_msg       TYPE rs_t_msg .
 
   PROTECTED SECTION.
 
@@ -173,22 +172,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
             lv_datatype = ''.
           ENDIF.
 
-          IF ( ls_old_str-datatype = 'DEC'
-                 OR ls_old_str-datatype = 'QUAN'
-                 OR ls_old_str-datatype = 'CURR'
-                 OR ls_old_str-datatype = 'FLTP' ) AND
-              ls_prop_fields-datatype CP 'INT*'.
-            lv_datatype = ''.
-          ELSEIF ls_prop_fields-datatype CP 'INT*'.
-            DATA(lv_int_length_new) = ls_prop_fields-datatype+3(1).
-            DATA(lv_int_length_old) = ls_old_str-datatype+3(1).
-            IF lv_int_length_new > lv_int_length_old.
-              lv_datatype = 'DATATYPE'.
-            ELSE.
-              lv_datatype = ''.
-            ENDIF.
-          ENDIF.
-
           MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
           TRANSPORTING  ('CONVEXIT') ('CONVTYPE') ('LOWERCASE') ('UNIFIELDNM')
           (lv_datatype) (lv_leng) (lv_decimals).
@@ -312,7 +295,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
     TRY.
         DATA(lv_table) = lt_tabname[ dsotabtype = 'AT' ]-name.
       CATCH cx_sy_itab_line_not_found.
-        RETURN.
     ENDTRY.
 
     CREATE DATA lr_adso_table TYPE STANDARD TABLE OF (lv_table).
@@ -351,129 +333,30 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       DATA(lobj_ref) = CAST cl_abap_structdescr(
                             cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
 
-
-
-*      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
-*        lv_cnt = lv_cnt + 1.
-*
-*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*          IF gv_decimal_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*          ENDIF.
-*
-*          IF gv_thousand_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*          ENDIF.
-*          CONDENSE <lv_output>.
-*
-*        ENDIF.
-*
-*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
-*
-*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
-*          lv_cnt = lv_cnt + 1.
-*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*            IF gv_decimal_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*            ENDIF.
-*
-*            IF gv_thousand_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*            ENDIF.
-*            CONDENSE <lv_output>.
-*
-*          ENDIF.
-*
-*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
-*        ENDIF.
-*
-*        <lv_adso_field> = <lv_output>.
-*
-*      ENDLOOP.
-*      CLEAR lv_cnt.
-
-      DATA(lv_lengt) = lines( it_adso_fields ).
-
-      DO lv_lengt TIMES.
-
+      LOOP AT lt_output ASSIGNING FIELD-SYMBOL(<lv_output>).
         lv_cnt = lv_cnt + 1.
-        DATA(ls_adso_fields) =  it_adso_fields[ lv_cnt ] .
 
-        ASSIGN COMPONENT ls_adso_fields-fieldname OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
+        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
 
-        DATA(lv_kind) = lobj_ref->components[ name = ls_adso_fields-fieldname ]-type_kind.
+          REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
+          REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
+          CONDENSE <lv_output>.
 
-        TRY.
-            DATA(lv_output) = lt_output[ lv_cnt ].
+        ENDIF.
 
-            IF lv_kind = 'P'.
+        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
 
-              IF gv_decimal_sep IS NOT INITIAL.
-                REPLACE ALL OCCURRENCES OF gv_decimal_sep IN lv_output WITH '.'.
-              ENDIF.
+        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
+          lv_cnt = lv_cnt + 1.
+          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
+        ENDIF.
 
-              IF gv_thousand_sep IS NOT INITIAL.
-                REPLACE ALL OCCURRENCES OF gv_thousand_sep IN lv_output WITH ''.
-              ENDIF.
-              CONDENSE lv_output.
+        <lv_adso_field> = <lv_output>.
 
-            ENDIF.
+      ENDLOOP.
+      CLEAR lv_cnt.
 
-            <lv_adso_field> = lv_output.
-
-          CATCH cx_sy_itab_line_not_found.
-        ENDTRY.
-
-      ENDDO.
-    CLEAR lv_cnt.
     ENDLOOP.
-
-
-
-
-*        lv_cnt = lv_cnt + 1.
-*
-*        IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*          IF gv_decimal_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*          ENDIF.
-*
-*          IF gv_thousand_sep IS NOT INITIAL.
-*            REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*          ENDIF.
-*          CONDENSE <lv_output>.
-*
-*        ENDIF.
-*
-*        ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO FIELD-SYMBOL(<lv_adso_field>).
-*
-*        IF lobj_ref->components[ lv_cnt ]-name = 'RECORDMODE'.
-*          lv_cnt = lv_cnt + 1.
-*          IF lobj_ref->components[ lv_cnt ]-type_kind = 'P'.
-*
-*            IF gv_decimal_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_decimal_sep IN <lv_output> WITH '.'.
-*            ENDIF.
-*
-*            IF gv_thousand_sep IS NOT INITIAL.
-*              REPLACE ALL OCCURRENCES OF gv_thousand_sep IN <lv_output> WITH ''.
-*            ENDIF.
-*            CONDENSE <lv_output>.
-*
-*          ENDIF.
-*
-*          ASSIGN COMPONENT lv_cnt OF STRUCTURE <ls_adso> TO <lv_adso_field>.
-*        ENDIF.
-*
-*        <lv_adso_field> = <lv_output>.
-*
-*      ENDLOOP.
-*      CLEAR lv_cnt.
-
-
 
     CALL FUNCTION 'RSDSO_DU_WRITE_API'
       EXPORTING
@@ -515,44 +398,42 @@ DATA: lt_file_table     TYPE filetable,
       lt_output         TYPE table_of_strings,
       lt_key            TYPE cl_rso_adso_api=>tn_t_key,
       lv_hex            TYPE xstring,
-      lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension,
-      lv_prev_fieldname TYPE string.
+      lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension.
 
 SELECTION-SCREEN BEGIN OF BLOCK part1 WITH FRAME TITLE TEXT-b01.
-PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
+  PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
 SELECTION-SCREEN END OF BLOCK part1.
 
 SELECTION-SCREEN BEGIN OF BLOCK part2 WITH FRAME TITLE TEXT-b02.
-SELECTION-SCREEN BEGIN OF LINE.
-SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
-SELECTION-SCREEN POSITION 15.
-PARAMETERS pa_esc  TYPE char4.
+  SELECTION-SCREEN BEGIN OF LINE.
+    SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
+    SELECTION-SCREEN POSITION 15.
+    PARAMETERS pa_esc  TYPE char4.
 
-SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
-SELECTION-SCREEN POSITION 23.
-PARAMETERS pa_ehx  AS CHECKBOX.
-SELECTION-SCREEN END OF LINE.
+    SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
+    SELECTION-SCREEN POSITION 23.
+    PARAMETERS pa_ehx  AS CHECKBOX.
+  SELECTION-SCREEN END OF LINE.
 
-SELECTION-SCREEN BEGIN OF LINE.
-SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
-SELECTION-SCREEN POSITION 15.
-PARAMETERS pa_sep  TYPE char4.
+  SELECTION-SCREEN BEGIN OF LINE.
+    SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
+    SELECTION-SCREEN POSITION 15.
+    PARAMETERS pa_sep  TYPE char4.
 
-SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
-SELECTION-SCREEN POSITION 23.
-PARAMETERS pa_shx  AS CHECKBOX.
-SELECTION-SCREEN END OF LINE.
+    SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
+    SELECTION-SCREEN POSITION 23.
+    PARAMETERS pa_shx  AS CHECKBOX.
+  SELECTION-SCREEN END OF LINE.
 
-PARAMETERS: pa_tse  TYPE rsthousand,
-            pa_dse  TYPE rsdecimal,
-            pa_head AS CHECKBOX.
+  PARAMETERS: pa_tse  TYPE rsthousand,
+              pa_dse  TYPE rsdecimal,
+              pa_head AS CHECKBOX.
 
 SELECTION-SCREEN END OF BLOCK part2.
 
 SELECTION-SCREEN BEGIN OF BLOCK part3 WITH FRAME TITLE TEXT-b03.
-PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
-            pa_lod  AS CHECKBOX,
-            pa_area TYPE rsinfoarea.
+  PARAMETERS: pa_ane TYPE char10 OBLIGATORY,
+              pa_lod AS CHECKBOX.
 SELECTION-SCREEN END OF BLOCK part3.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
@@ -618,7 +499,7 @@ END-OF-SELECTION.
   ENDIF.
 
   LOOP AT lt_output REFERENCE INTO DATA(lr_output).
-    IF sy-tabix > 100000.
+    IF sy-tabix > 1.
       DELETE lt_output.
     ENDIF.
   ENDLOOP.
@@ -673,33 +554,6 @@ END-OF-SELECTION.
     IMPORTING
       et_adso_fields = DATA(lt_adso_fields) ).
 
-  LOOP AT lt_adso_fields REFERENCE INTO DATA(lr_adso_fields) WHERE datatp = 'QUAN'.
-    lr_adso_fields->datatp = 'CHAR'.
-  ENDLOOP.
-
-  DATA(lt_temp) = lt_adso_fields.
-
-  SORT lt_temp BY fieldname.
-
-  LOOP AT lt_temp REFERENCE INTO DATA(lr_temp).
-
-    IF lr_temp->fieldname = lv_prev_fieldname.
-
-      READ TABLE lt_adso_fields WITH KEY fieldname = lr_temp->fieldname
-      REFERENCE INTO DATA(lr_adso_field).
-
-      DATA(lv_char_trim) = strlen( lr_adso_field->fieldname ) - 1.
-
-      lr_adso_field->fieldname = |{ lr_adso_field->fieldname(lv_char_trim) }2|.
-
-      lv_prev_fieldname = lr_temp->fieldname.
-
-    ENDIF.
-
-    lv_prev_fieldname = lr_temp->fieldname.
-
-  ENDLOOP.
-
   DATA(lt_fieldcat) =  VALUE slis_t_fieldcat_alv(
                    ( fieldname  = 'FIELDNAME' seltext_s = 'FIELD NAME'  edit = abap_true )
                    ( fieldname  = 'LENGTH'    seltext_s = 'LENGTH'      edit = abap_true )
@@ -731,13 +585,12 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
         APPEND ls_adso_fields-fieldname TO lt_key.
       ENDLOOP.
 
-      DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true  ).
+      DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true ).
 
       TRY.
           cl_rso_adso_api=>create(
             EXPORTING
               i_adsonm                      = CONV #( pa_ane )
-              i_infoarea                    = pa_area
               i_s_adsoflags                 = ls_flags
               i_t_object                    = CORRESPONDING #( lt_adso_fields )
               i_t_dimension                 = lt_dimension
@@ -755,9 +608,8 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
       ENDTRY.
 
       IF pa_lod = abap_true.
-        lobj_adso_bof->load_data( EXPORTING it_data             = lt_output
-                                            iv_adso_name        = CONV #( pa_ane )
-                                            it_adso_fields      = lt_adso_fields
+        lobj_adso_bof->load_data( EXPORTING it_data      = lt_output
+                                            iv_adso_name = CONV #( pa_ane )
                                    IMPORTING et_msg = DATA(lt_request_msg) ).
       ENDIF.
 
@@ -847,6 +699,6 @@ ENDFORM.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-30T14:26:48.035Z
+* abapmerge 0.14.3 - 2021-12-31T12:07:27.748Z
 ENDINTERFACE.
 ****************************************************
