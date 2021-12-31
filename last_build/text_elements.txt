@@ -1,6 +1,7 @@
 SELECTION-TEXT:
 
 PA_ANE	ADSO name
+PA_AREA	ADSO area
 PA_DSE	Decimal separator
 PA_EHX	                              
 PA_ESC	                              
