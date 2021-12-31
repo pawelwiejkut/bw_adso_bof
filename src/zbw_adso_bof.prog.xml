@@ -66,6 +66,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>PA_AREA</KEY>
+     <ENTRY>ADSO area</ENTRY>
+     <LENGTH>17</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>PA_DSE</KEY>
      <ENTRY>Decimal separator</ENTRY>
      <LENGTH>25</LENGTH>
