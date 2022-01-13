@@ -6,7 +6,7 @@ CLASS zcl_bw_adso_bof DEFINITION PUBLIC
     TYPES: BEGIN OF t_alv,
              key TYPE abap_bool.
              INCLUDE TYPE cl_rso_adso_api=>tn_s_object.
-           TYPES: END OF t_alv.
+    TYPES: END OF t_alv.
 
     TYPES t_ty_alv TYPE STANDARD TABLE OF t_alv.
 
@@ -32,6 +32,10 @@ CLASS zcl_bw_adso_bof DEFINITION PUBLIC
                 iv_adso_name   TYPE rsoadsonm
                 it_adso_fields TYPE t_ty_alv
       EXPORTING et_msg         TYPE rs_t_msg .
+
+    METHODS check_fields
+      IMPORTING it_adso_fields   TYPE t_ty_alv
+      EXPORTING et_adso_corrected TYPE t_ty_alv.
 
   PROTECTED SECTION.
 
@@ -358,7 +362,7 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
         TRY.
             DATA(lv_output) = lt_output[ lv_cnt ].
 
-            IF lv_kind = 'P' or lv_kind = 'F' .
+            IF lv_kind = 'P' OR lv_kind = 'F' .
 
               IF gv_decimal_sep IS NOT INITIAL.
                 REPLACE ALL OCCURRENCES OF gv_decimal_sep IN lv_output WITH '.'.
@@ -377,7 +381,7 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
         ENDTRY.
 
       ENDDO.
-    CLEAR lv_cnt.
+      CLEAR lv_cnt.
     ENDLOOP.
 
     CALL FUNCTION 'RSDSO_DU_WRITE_API'
@@ -396,6 +400,53 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
     ENDIF.
 
     et_msg = lt_msg.
+
+  ENDMETHOD.
+
+  METHOD check_fields.
+
+    DATA: lv_prev_fieldname TYPE string.
+    DATA(lt_fields) = it_adso_fields.
+    DATA(lt_adso_fields_result) = it_adso_fields.
+
+    SORT lt_fields BY fieldname.
+
+    LOOP AT lt_fields REFERENCE INTO DATA(lr_field).
+
+      IF lr_field->fieldname = lv_prev_fieldname.
+
+        READ TABLE lt_adso_fields_result WITH KEY fieldname = lr_field->fieldname
+        REFERENCE INTO DATA(lr_adso_field).
+
+        DATA(lv_char_trim) = strlen( lr_adso_field->fieldname ) - 1.
+
+        lr_adso_field->fieldname = |{ lr_adso_field->fieldname(lv_char_trim) }|.
+
+        lv_prev_fieldname = lr_field->fieldname.
+
+      ENDIF.
+
+      lv_prev_fieldname = lr_field->fieldname.
+
+    ENDLOOP.
+
+
+    SELECT *
+    FROM trese
+    INTO TABLE @DATA(lt_trese)
+    FOR ALL ENTRIES IN @it_adso_fields
+    WHERE name = @it_adso_fields-fieldname.
+
+    LOOP AT lt_trese REFERENCE INTO DATA(lr_trese).
+
+      READ TABLE lt_adso_fields_result WITH KEY fieldname = lr_trese->name
+      REFERENCE INTO DATA(lr_asdo_fields_result).
+
+      lr_asdo_fields_result->fieldname = |{ lr_asdo_fields_result->fieldname(lv_char_trim) }|.
+
+    ENDLOOP.
+
+    et_adso_corrected = lt_adso_fields_result.
 
   ENDMETHOD.
 

@@ -180,28 +180,8 @@ END-OF-SELECTION.
     lr_adso_fields->datatp = 'CHAR'.
   ENDLOOP.
 
-  DATA(lt_temp) = lt_adso_fields.
-
-  SORT lt_temp BY fieldname.
-
-  LOOP AT lt_temp REFERENCE INTO DATA(lr_temp).
-
-    IF lr_temp->fieldname = lv_prev_fieldname.
-
-      READ TABLE lt_adso_fields WITH KEY fieldname = lr_temp->fieldname
-      REFERENCE INTO DATA(lr_adso_field).
-
-      DATA(lv_char_trim) = strlen( lr_adso_field->fieldname ) - 1.
-
-      lr_adso_field->fieldname = |{ lr_adso_field->fieldname(lv_char_trim) }2|.
-
-      lv_prev_fieldname = lr_temp->fieldname.
-
-    ENDIF.
-
-    lv_prev_fieldname = lr_temp->fieldname.
-
-  ENDLOOP.
+  lobj_adso_bof->check_fields( EXPORTING it_adso_fields    = lt_adso_fields
+                               IMPORTING et_adso_corrected = lt_adso_fields ).
 
   DATA(lt_fieldcat) =  VALUE slis_t_fieldcat_alv(
                    ( fieldname  = 'FIELDNAME' seltext_s = 'FIELD NAME'  edit = abap_true )
@@ -235,6 +215,9 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
       ENDLOOP.
 
       DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true  ).
+
+      lobj_adso_bof->check_fields( EXPORTING it_adso_fields    = lt_adso_fields
+                                   IMPORTING et_adso_corrected = lt_adso_fields ).
 
       TRY.
           cl_rso_adso_api=>create(
