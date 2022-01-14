@@ -8,7 +8,7 @@ CLASS zcl_bw_adso_bof DEFINITION
     TYPES: BEGIN OF t_alv,
              key TYPE abap_bool.
              INCLUDE TYPE cl_rso_adso_api=>tn_s_object.
-    TYPES: END OF t_alv.
+           TYPES: END OF t_alv.
 
     TYPES t_ty_alv TYPE STANDARD TABLE OF t_alv.
 
@@ -36,7 +36,7 @@ CLASS zcl_bw_adso_bof DEFINITION
       EXPORTING et_msg         TYPE rs_t_msg .
 
     METHODS check_fields
-      IMPORTING it_adso_fields   TYPE t_ty_alv
+      IMPORTING it_adso_fields    TYPE t_ty_alv
       EXPORTING et_adso_corrected TYPE t_ty_alv.
 
   PROTECTED SECTION.
@@ -185,6 +185,11 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
             ELSE.
               lv_datatype = ''.
             ENDIF.
+          ENDIF.
+
+          IF strlen( ls_string ) > 8 AND ls_prop_fields-datatype = 'DATS'.
+            ls_prop_fields-datatype = 'CHAR'.
+            ls_prop_fields-leng = strlen( ls_string ).
           ENDIF.
 
           MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
@@ -440,6 +445,8 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       READ TABLE lt_adso_fields_result WITH KEY fieldname = lr_trese->name
       REFERENCE INTO DATA(lr_asdo_fields_result).
 
+      lv_char_trim = strlen( lr_asdo_fields_result->fieldname ) - 1.
+
       lr_asdo_fields_result->fieldname = |{ lr_asdo_fields_result->fieldname(lv_char_trim) }|.
 
     ENDLOOP.
@@ -473,40 +480,40 @@ DATA: lt_file_table     TYPE filetable,
       lv_prev_fieldname TYPE string.
 
 SELECTION-SCREEN BEGIN OF BLOCK part1 WITH FRAME TITLE TEXT-b01.
-  PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
+PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
 SELECTION-SCREEN END OF BLOCK part1.
 
 SELECTION-SCREEN BEGIN OF BLOCK part2 WITH FRAME TITLE TEXT-b02.
-  SELECTION-SCREEN BEGIN OF LINE.
-    SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
-    SELECTION-SCREEN POSITION 15.
-    PARAMETERS pa_esc  TYPE char4.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS pa_esc  TYPE char4.
 
-    SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
-    SELECTION-SCREEN POSITION 23.
-    PARAMETERS pa_ehx  AS CHECKBOX.
-  SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
+SELECTION-SCREEN POSITION 23.
+PARAMETERS pa_ehx  AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
 
-  SELECTION-SCREEN BEGIN OF LINE.
-    SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
-    SELECTION-SCREEN POSITION 15.
-    PARAMETERS pa_sep  TYPE char4.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS pa_sep  TYPE char4.
 
-    SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
-    SELECTION-SCREEN POSITION 23.
-    PARAMETERS pa_shx  AS CHECKBOX.
-  SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
+SELECTION-SCREEN POSITION 23.
+PARAMETERS pa_shx  AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
 
-  PARAMETERS: pa_tse  TYPE rsthousand,
-              pa_dse  TYPE rsdecimal,
-              pa_head AS CHECKBOX.
+PARAMETERS: pa_tse  TYPE rsthousand,
+            pa_dse  TYPE rsdecimal,
+            pa_head AS CHECKBOX.
 
 SELECTION-SCREEN END OF BLOCK part2.
 
 SELECTION-SCREEN BEGIN OF BLOCK part3 WITH FRAME TITLE TEXT-b03.
-  PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
-              pa_lod  AS CHECKBOX,
-              pa_area TYPE rsinfoarea.
+PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
+            pa_lod  AS CHECKBOX,
+            pa_area TYPE rsinfoarea.
 SELECTION-SCREEN END OF BLOCK part3.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
