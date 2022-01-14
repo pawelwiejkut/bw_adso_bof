@@ -1,5 +1,5 @@
 CLASS zcl_bw_adso_bof DEFINITION PUBLIC
-    FINAL
+      FINAL
   CREATE PUBLIC.
   PUBLIC SECTION.
 
@@ -34,7 +34,7 @@ CLASS zcl_bw_adso_bof DEFINITION PUBLIC
       EXPORTING et_msg         TYPE rs_t_msg .
 
     METHODS check_fields
-      IMPORTING it_adso_fields   TYPE t_ty_alv
+      IMPORTING it_adso_fields    TYPE t_ty_alv
       EXPORTING et_adso_corrected TYPE t_ty_alv.
 
   PROTECTED SECTION.
@@ -346,8 +346,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       APPEND INITIAL LINE TO <lt_adso> ASSIGNING FIELD-SYMBOL(<ls_adso>).
       DATA(lobj_ref) = CAST cl_abap_structdescr(
                             cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
-
-
       DATA(lv_lengt) = lines( it_adso_fields ).
 
       DO lv_lengt TIMES.
@@ -429,8 +427,6 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
       lv_prev_fieldname = lr_field->fieldname.
 
     ENDLOOP.
-
-
     SELECT *
     FROM trese
     INTO TABLE @DATA(lt_trese)

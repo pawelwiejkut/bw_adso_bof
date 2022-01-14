@@ -1,4 +1,4 @@
-REPORT zbw_ADSO_BOF.
+REPORT zbw_adso_bof.
 TYPES: BEGIN OF t_msg,
          msgty TYPE symsgty,
          msgid TYPE symsgid,
