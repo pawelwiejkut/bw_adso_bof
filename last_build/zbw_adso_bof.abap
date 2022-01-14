@@ -1,7 +1,7 @@
 REPORT zbw_adso_bof_standalone.
 CLASS zcl_bw_adso_bof DEFINITION DEFERRED.
 CLASS zcl_bw_adso_bof DEFINITION
-    FINAL
+      FINAL
   CREATE PUBLIC.
   PUBLIC SECTION.
 
@@ -36,7 +36,7 @@ CLASS zcl_bw_adso_bof DEFINITION
       EXPORTING et_msg         TYPE rs_t_msg .
 
     METHODS check_fields
-      IMPORTING it_adso_fields   TYPE t_ty_alv
+      IMPORTING it_adso_fields    TYPE t_ty_alv
       EXPORTING et_adso_corrected TYPE t_ty_alv.
 
   PROTECTED SECTION.
@@ -784,6 +784,6 @@ ENDFORM.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-14T08:28:33.804Z
+* abapmerge 0.14.3 - 2022-01-14T12:13:17.685Z
 ENDINTERFACE.
 ****************************************************
