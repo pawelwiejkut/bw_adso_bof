@@ -1,15 +1,16 @@
 SELECTION-TEXT:
 
 PA_ANE	ADSO name
-PA_AREA	ADSO area
+PA_AREA	Info area
 PA_DSE	Decimal separator
-PA_EHX	                              
-PA_ESC	                              
+PA_EHX	?...
+PA_ESC	?...
 PA_HEAD	First line is a header
+PA_LINE	Lines in file to be checked
 PA_LOD	Load test data into ADSO
 PA_PATH	PC File path
-PA_SEP	
-PA_SHX	
+PA_SEP	?...
+PA_SHX	?...
 PA_TSE	Thousand separator
 
 TEXT-SYMBOLS:
