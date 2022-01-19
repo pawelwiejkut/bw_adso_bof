@@ -1,12 +1,12 @@
 CLASS zcl_bw_adso_bof DEFINITION PUBLIC
-      FINAL
+     FINAL
   CREATE PUBLIC.
   PUBLIC SECTION.
 
     TYPES: BEGIN OF t_alv,
              key TYPE abap_bool.
              INCLUDE TYPE cl_rso_adso_api=>tn_s_object.
-    TYPES: END OF t_alv.
+           TYPES: END OF t_alv.
 
     TYPES t_ty_alv TYPE STANDARD TABLE OF t_alv.
 
@@ -131,66 +131,105 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
           IF ls_string IS INITIAL.
             CONTINUE.
           ENDIF.
-          CALL FUNCTION 'RS_GET_TYPE_FROM_DATA'
-            EXPORTING
-              i_data       = ls_string
-              i_char1000   = gv_thousand_sep
-              i_dezichar   = gv_decimal_sep
-            CHANGING
-              e_datatype   = ls_prop_fields-datatype
-              e_typenum    = lv_typenum
-              e_convexit   = ls_prop_fields-convexit
-              e_convtype   = ls_prop_fields-convtype
-              e_leng       = ls_prop_fields-leng
-              e_decimal    = ls_prop_fields-decimals
-              e_lowercase  = ls_prop_fields-lowercase
-              e_unifieldnm = ls_prop_fields-unifieldnm.
 
           TRY.
+              CALL FUNCTION 'RS_GET_TYPE_FROM_DATA'
+                EXPORTING
+                  i_data       = ls_string
+                  i_char1000   = gv_thousand_sep
+                  i_dezichar   = gv_decimal_sep
+                CHANGING
+                  e_datatype   = ls_prop_fields-datatype
+                  e_typenum    = lv_typenum
+                  e_convexit   = ls_prop_fields-convexit
+                  e_convtype   = ls_prop_fields-convtype
+                  e_leng       = ls_prop_fields-leng
+                  e_decimal    = ls_prop_fields-decimals
+                  e_lowercase  = ls_prop_fields-lowercase
+                  e_unifieldnm = ls_prop_fields-unifieldnm.
+
               DATA(ls_old_str) = lt_prop_fields[ lv_index ].
-            CATCH cx_sy_itab_line_not_found.
+
+              "Avoid changing from other data types to tims or dats.
+              IF ls_old_str IS NOT INITIAL.
+
+                IF ls_old_str-datatype <> 'TIMS' AND ls_prop_fields-datatype = 'TIMS' .
+                  EXIT.
+                ENDIF.
+
+                IF ls_old_str-datatype <> 'DATS' AND ls_prop_fields-datatype = 'DATS' .
+                  EXIT.
+                ENDIF.
+
+              ENDIF.
+
+              "Convert to adso datatype
+              IF ls_prop_fields-datatype+2(2) = '34' OR ls_prop_fields-datatype+2(2) = '16'.
+                ls_prop_fields-datatype = |D{ ls_prop_fields-datatype+2(2) }D|.
+              ENDIF.
+
+              "Don't shorten lenghts
+              IF ls_old_str-leng < ls_prop_fields-leng.
+                DATA(lv_leng) = 'LENG'.
+              ELSE.
+                lv_leng = ''.
+              ENDIF.
+
+              "Don't shorten decimals
+              IF ls_old_str-decimals < ls_prop_fields-decimals.
+                DATA(lv_decimals) = 'DECIMALS'.
+              ELSE.
+                lv_decimals = ''.
+              ENDIF.
+
+              "If once you are discovered as CHAR - be a char til the end
+              IF ls_old_str-datatype <> 'CHAR'.
+                DATA(lv_datatype) = 'DATATYPE'.
+              ELSE.
+                lv_datatype = ''.
+              ENDIF.
+
+              "If you had comma once, you can'r be a intiger anymore
+              IF ( ls_old_str-datatype = 'DEC'
+                     OR ls_old_str-datatype = 'QUAN'
+                     OR ls_old_str-datatype = 'CURR'
+                     OR ls_old_str-datatype = 'FLTP' ) AND
+                  ls_prop_fields-datatype CP 'INT*'.
+                lv_datatype = ''.
+              ELSEIF ls_prop_fields-datatype CP 'INT*'.
+                DATA(lv_int_length_new) = ls_prop_fields-datatype+3(1).
+                DATA(lv_int_length_old) = ls_old_str-datatype+3(1).
+                IF lv_int_length_new > lv_int_length_old.
+                  lv_datatype = 'DATATYPE'.
+                ELSE.
+                  lv_datatype = ''.
+                ENDIF.
+              ENDIF.
+
+              "Wrong date discovery fix
+              IF strlen( ls_string ) > 8 AND ls_prop_fields-datatype = 'DATS'.
+                ls_prop_fields-datatype = 'CHAR'.
+                ls_prop_fields-leng = strlen( ls_string ).
+              ENDIF.
+
+              "Change only required fields
+              MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
+              TRANSPORTING  ('CONVEXIT') ('CONVTYPE') ('LOWERCASE') ('UNIFIELDNM')
+              (lv_datatype) (lv_leng) (lv_decimals).
+
+              "Catch exceptions from RS_GET_TYPE_FROM_DATA
+            CATCH cx_root.
+*            CATCH cx_sy_itab_line_not_found.
           ENDTRY.
-
-          IF ls_old_str-leng < ls_prop_fields-leng.
-            DATA(lv_leng) = 'LENG'.
-          ELSE.
-            lv_leng = ''.
-          ENDIF.
-
-          IF ls_old_str-decimals < ls_prop_fields-decimals.
-            DATA(lv_decimals) = 'DECIMALS'.
-          ELSE.
-            lv_decimals = ''.
-          ENDIF.
-
-          IF ls_old_str-datatype <> 'CHAR'.
-            DATA(lv_datatype) = 'DATATYPE'.
-          ELSE.
-            lv_datatype = ''.
-          ENDIF.
-
-          IF ( ls_old_str-datatype = 'DEC'
-                 OR ls_old_str-datatype = 'QUAN'
-                 OR ls_old_str-datatype = 'CURR'
-                 OR ls_old_str-datatype = 'FLTP' ) AND
-              ls_prop_fields-datatype CP 'INT*'.
-            lv_datatype = ''.
-          ELSEIF ls_prop_fields-datatype CP 'INT*'.
-            DATA(lv_int_length_new) = ls_prop_fields-datatype+3(1).
-            DATA(lv_int_length_old) = ls_old_str-datatype+3(1).
-            IF lv_int_length_new > lv_int_length_old.
-              lv_datatype = 'DATATYPE'.
-            ELSE.
-              lv_datatype = ''.
-            ENDIF.
-          ENDIF.
-
-          MODIFY lt_prop_fields FROM ls_prop_fields INDEX lv_index
-          TRANSPORTING  ('CONVEXIT') ('CONVTYPE') ('LOWERCASE') ('UNIFIELDNM')
-          (lv_datatype) (lv_leng) (lv_decimals).
 
         ENDLOOP.
       ENDIF.
+
+      cl_progress_indicator=>progress_indicate(
+                           i_text = |Discovering types in progress|
+                           i_processed = lv_ctr
+                           i_total = lines( it_data ) ).
+
     ENDLOOP.
     et_prop_fields = lt_prop_fields.
     et_fields = lt_fields.
@@ -343,6 +382,10 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
+      cl_progress_indicator=>progress_indicate(
+                         i_text = 'Loading data to DSO in progress'
+                         i_output_immediately = abap_true ).
+
       APPEND INITIAL LINE TO <lt_adso> ASSIGNING FIELD-SYMBOL(<ls_adso>).
       DATA(lobj_ref) = CAST cl_abap_structdescr(
                             cl_abap_typedescr=>describe_by_data( p_data = <ls_adso>  ) ).
@@ -437,6 +480,8 @@ CLASS zcl_bw_adso_bof IMPLEMENTATION.
 
       READ TABLE lt_adso_fields_result WITH KEY fieldname = lr_trese->name
       REFERENCE INTO DATA(lr_asdo_fields_result).
+
+      lv_char_trim = strlen( lr_asdo_fields_result->fieldname ) - 1.
 
       lr_asdo_fields_result->fieldname = |{ lr_asdo_fields_result->fieldname(lv_char_trim) }|.
 
