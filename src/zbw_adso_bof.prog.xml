@@ -94,6 +94,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>PA_LINE</KEY>
+     <ENTRY>Lines in file to be checked</ENTRY>
+     <LENGTH>35</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>PA_LOD</KEY>
      <ENTRY>Load test data into ADSO</ENTRY>
      <LENGTH>32</LENGTH>
