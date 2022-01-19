@@ -1,4 +1,3 @@
-REPORT zbw_adso_bof.
 TYPES: BEGIN OF t_msg,
          msgty TYPE symsgty,
          msgid TYPE symsgid,
@@ -19,43 +18,45 @@ DATA: lt_file_table     TYPE filetable,
       lt_key            TYPE cl_rso_adso_api=>tn_t_key,
       lv_hex            TYPE xstring,
       lt_dimension      TYPE cl_rso_adso_api=>tn_t_dimension,
-      lv_prev_fieldname TYPE string.
+      lv_prev_fieldname TYPE string,
+      lt_adso_fields    TYPE zcl_bw_adso_bof=>t_ty_alv.
 
 SELECTION-SCREEN BEGIN OF BLOCK part1 WITH FRAME TITLE TEXT-b01.
-  PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY.
+PARAMETERS: pa_path TYPE string LOWER CASE OBLIGATORY,
+            pa_line TYPE i OBLIGATORY.
 SELECTION-SCREEN END OF BLOCK part1.
 
 SELECTION-SCREEN BEGIN OF BLOCK part2 WITH FRAME TITLE TEXT-b02.
-  SELECTION-SCREEN BEGIN OF LINE.
-    SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
-    SELECTION-SCREEN POSITION 15.
-    PARAMETERS pa_esc  TYPE char4.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(11) TEXT-001 FOR FIELD pa_esc.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS pa_esc  TYPE char4.
 
-    SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
-    SELECTION-SCREEN POSITION 23.
-    PARAMETERS pa_ehx  AS CHECKBOX.
-  SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN COMMENT 25(4) TEXT-002 FOR FIELD pa_ehx.
+SELECTION-SCREEN POSITION 23.
+PARAMETERS pa_ehx  AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
 
-  SELECTION-SCREEN BEGIN OF LINE.
-    SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
-    SELECTION-SCREEN POSITION 15.
-    PARAMETERS pa_sep  TYPE char4.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(14) TEXT-003 FOR FIELD pa_sep.
+SELECTION-SCREEN POSITION 15.
+PARAMETERS pa_sep  TYPE char4.
 
-    SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
-    SELECTION-SCREEN POSITION 23.
-    PARAMETERS pa_shx  AS CHECKBOX.
-  SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN COMMENT 25(4) TEXT-004 FOR FIELD pa_shx.
+SELECTION-SCREEN POSITION 23.
+PARAMETERS pa_shx  AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
 
-  PARAMETERS: pa_tse  TYPE rsthousand,
-              pa_dse  TYPE rsdecimal,
-              pa_head AS CHECKBOX.
+PARAMETERS: pa_tse  TYPE rsthousand,
+            pa_dse  TYPE rsdecimal,
+            pa_head AS CHECKBOX.
 
 SELECTION-SCREEN END OF BLOCK part2.
 
 SELECTION-SCREEN BEGIN OF BLOCK part3 WITH FRAME TITLE TEXT-b03.
-  PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
-              pa_lod  AS CHECKBOX,
-              pa_area TYPE rsinfoarea.
+PARAMETERS: pa_ane  TYPE char10 OBLIGATORY,
+            pa_lod  AS CHECKBOX,
+            pa_area TYPE rsinfoarea.
 SELECTION-SCREEN END OF BLOCK part3.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_path.
@@ -89,39 +90,51 @@ AT SELECTION-SCREEN ON VALUE-REQUEST FOR pa_sep.
 
 END-OF-SELECTION.
 
-  cl_gui_frontend_services=>gui_upload(
-   EXPORTING
-     filename                = pa_path
-   CHANGING
-     data_tab                = lt_output
-   EXCEPTIONS
-     file_open_error         = 1
-     file_read_error         = 2
-     no_batch                = 3
-     gui_refuse_filetransfer = 4
-     invalid_type            = 5
-     no_authority            = 6
-     unknown_error           = 7
-     bad_data_format         = 8
-     header_not_allowed      = 9
-     separator_not_allowed   = 10
-     header_too_long         = 11
-     unknown_dp_error        = 12
-     access_denied           = 13
-     dp_out_of_memory        = 14
-     disk_full               = 15
-     dp_timeout              = 16
-     not_supported_by_gui    = 17
-     error_no_gui            = 18
-     OTHERS                  = 19 ).
+    cl_progress_indicator=>progress_indicate(
+                         i_text = 'Uploading in progress'
+                         i_output_immediately = abap_true ).
 
-  IF sy-subrc <> 0.
-    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    cl_gui_frontend_services=>gui_upload(
+     EXPORTING
+       filename                = pa_path
+     CHANGING
+       data_tab                = lt_output
+     EXCEPTIONS
+       file_open_error         = 1
+       file_read_error         = 2
+       no_batch                = 3
+       gui_refuse_filetransfer = 4
+       invalid_type            = 5
+       no_authority            = 6
+       unknown_error           = 7
+       bad_data_format         = 8
+       header_not_allowed      = 9
+       separator_not_allowed   = 10
+       header_too_long         = 11
+       unknown_dp_error        = 12
+       access_denied           = 13
+       dp_out_of_memory        = 14
+       disk_full               = 15
+       dp_timeout              = 16
+       not_supported_by_gui    = 17
+       error_no_gui            = 18
+       OTHERS                  = 19 ).
+
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+        WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+  IF pa_line = 1 AND pa_head = abap_true.
+
+    MESSAGE 'If header is selected, please provide at least 2 lines'
+    TYPE 'S' DISPLAY LIKE 'W'.
+    EXIT.
+
   ENDIF.
 
   LOOP AT lt_output REFERENCE INTO DATA(lr_output).
-    IF sy-tabix > 100000.
+    IF sy-tabix > pa_line.
       DELETE lt_output.
     ENDIF.
   ENDLOOP.
@@ -155,33 +168,34 @@ END-OF-SELECTION.
     lv_separator_char = pa_sep.
   ENDIF.
 
-  DATA(lobj_adso_bof) = NEW zcl_bw_adso_bof(
-    iv_data_sep     = lv_separator_char
-    iv_esc_sign     = lv_escape_char
-    iv_thousand_sep = pa_tse
-    iv_decimal_sep  = pa_dse
-    iv_header       = pa_head ).
+    DATA(lobj_adso_bof) = NEW zcl_bw_adso_bof(
+      iv_data_sep     = lv_separator_char
+      iv_esc_sign     = lv_escape_char
+      iv_thousand_sep = pa_tse
+      iv_decimal_sep  = pa_dse
+      iv_header       = pa_head ).
 
-  lobj_adso_bof->convert_into_columns(
-    EXPORTING
-      it_data         = lt_output
-    IMPORTING
-      et_prop_fields  = DATA(lt_prop_fields)
-      et_fields       = DATA(lt_fields) ).
+    lobj_adso_bof->convert_into_columns(
+      EXPORTING
+        it_data         = lt_output
+      IMPORTING
+        et_prop_fields  = DATA(lt_prop_fields)
+        et_fields       = DATA(lt_fields) ).
 
-  lobj_adso_bof->post_process(
-    EXPORTING
-      it_prop_fields = lt_prop_fields
-      it_fields      = lt_fields
-    IMPORTING
-      et_adso_fields = DATA(lt_adso_fields) ).
+    lobj_adso_bof->post_process(
+      EXPORTING
+        it_prop_fields = lt_prop_fields
+        it_fields      = lt_fields
+      IMPORTING
+        et_adso_fields = lt_adso_fields ).
 
-  LOOP AT lt_adso_fields REFERENCE INTO DATA(lr_adso_fields) WHERE datatp = 'QUAN'.
-    lr_adso_fields->datatp = 'CHAR'.
-  ENDLOOP.
+    LOOP AT lt_adso_fields REFERENCE INTO DATA(lr_adso_fields) WHERE datatp = 'QUAN'.
+      lr_adso_fields->datatp = 'CHAR'.
+    ENDLOOP.
 
-  lobj_adso_bof->check_fields( EXPORTING it_adso_fields    = lt_adso_fields
-                               IMPORTING et_adso_corrected = lt_adso_fields ).
+    lobj_adso_bof->check_fields( EXPORTING it_adso_fields    = lt_adso_fields
+                                 IMPORTING et_adso_corrected = lt_adso_fields ).
+
 
   DATA(lt_fieldcat) =  VALUE slis_t_fieldcat_alv(
                    ( fieldname  = 'FIELDNAME' seltext_s = 'FIELD NAME'  edit = abap_true )
@@ -214,10 +228,28 @@ FORM user_command USING rcomm TYPE sy-ucomm sel TYPE slis_selfield.
         APPEND ls_adso_fields-fieldname TO lt_key.
       ENDLOOP.
 
+      IF lines( lt_key ) = 0 .
+
+        MESSAGE 'This report creates Direct Update ADSO, so at least one key is required'
+        TYPE 'S' DISPLAY LIKE 'W'.
+        EXIT.
+
+      ENDIF.
+
       DATA(ls_flags) = VALUE cl_rso_adso_api=>tn_s_adsoflags( direct_update = abap_true  ).
 
       lobj_adso_bof->check_fields( EXPORTING it_adso_fields    = lt_adso_fields
                                    IMPORTING et_adso_corrected = lt_adso_fields ).
+
+      DATA(lv_adso_exists) = cl_rso_adso_api=>exist( i_adsonm = CONV #( pa_ane ) ).
+
+      IF lv_adso_exists = abap_true.
+
+        MESSAGE 'ADSO with this name already exist, please go back and change the name'
+        TYPE 'S' DISPLAY LIKE 'W'.
+        EXIT.
+
+      ENDIF.
 
       TRY.
           cl_rso_adso_api=>create(
